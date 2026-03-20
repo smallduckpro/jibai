@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卡牌展示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: url('img/backgroud.jpg'); /* 设置背景图片路径 */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            overflow: hidden;
+        }
+        
+        .cards-container {
+            display: flex;
+            gap: 50px;
+            perspective: 1000px;
+            padding: 40px;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 1200px;
+        }
+        
+        .card {
+            width: 320px;
+            height: 450px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: all 0.6s ease;
+            cursor: pointer;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            /* 粉色边框 */
+            border: 3px solid #ff6b8b;
+            /* 边缘发光效果 */
+            box-shadow: 0 0 20px rgba(255, 107, 139, 0.4), 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card:hover {
+            transform: translateY(-15px) rotateX(5deg) rotateY(5deg);
+            box-shadow: 0 0 30px rgba(255, 107, 139, 0.6), 0 25px 50px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* 卡牌边缘特效 */
+        .card::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 17px;
+            background: linear-gradient(45deg, #fff, #f0f0f0, #fff);
+            z-index: -1;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+        
+        .card:hover::after {
+            opacity: 1;
+        }
+        
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .card-back {
+            background-size: cover;
+            background-position: center;
+            background-color: #333;
+            /* 这里可以通过JavaScript动态设置背景图片 */
+        }
+        
+        .card-front {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            transform: rotateY(180deg);
+            flex-direction: column;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .card-front h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+        }
+        
+        .card-front p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+        
+
+        
+
+        
+        /* 锁图标样式 */
+        .lock-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background-image: url('img/锁定.svg'); /* 这里设置锁图标的路径 */
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: 10;
+            opacity: 0.8;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover .lock-icon {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+        
+        /* 解锁动画 */
+        .card.unlocked .lock-icon {
+            animation: lockUnlock 1s ease-out forwards;
+        }
+        
+        @keyframes lockUnlock {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: translate(-50%, -50%) scale(1.2) rotate(45deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0) rotate(90deg);
+            }
+        }
+        
+        /* 震动动画 */
+        @keyframes shake {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            10%, 30%, 50%, 70%, 90% {
+                transform: translateX(-10px);
+            }
+            20%, 40%, 60%, 80% {
+                transform: translateX(10px);
+            }
+        }
+        
+        .card.shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        /* 闪红动画 */
+        @keyframes flashRed {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(255, 107, 139, 0.4), 0 15px 35px rgba(0, 0, 0, 0.1);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(255, 0, 0, 0.8), 0 15px 35px rgba(0, 0, 0, 0.1);
+            }
+        }
+        
+        .card.flash-red {
+            animation: flashRed 0.5s ease-in-out;
+        }
+        
+        /* 提示框样式 */
+        .notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 10px;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .notification.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+        
+        .notification-content {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ff6b8b;
+        }
+        
+        /* GIF容器样式 */
+        .gif-container {
+            position: fixed;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1001;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .gif-container img {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 900px) {
+            .cards-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .card {
+                width: 280px;
+                height: 400px;
+            }
+            
+            .lock-icon {
+                width: 60px;
+                height: 60px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .card {
+                width: 240px;
+                height: 350px;
+            }
+            
+            .lock-icon {
+                width: 50px;
+                height: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="cards-container">
+        <div class="card" data-card-id="1">
+            <div class="card-face card-back" data-back-image=""></div>
+            <div class="card-face card-front">
+                <h3>卡牌 1</h3>
+                <p>这是第一张卡牌的正面内容</p>
+            </div>
+            <div class="lock-icon"></div>
+        </div>
+        
+        <div class="card" data-card-id="2">
+            <div class="card-face card-back" data-back-image=""></div>
+            <div class="card-face card-front">
+                <h3>卡牌 2</h3>
+                <p>这是第二张卡牌的正面内容</p>
+            </div>
+            <div class="lock-icon"></div>
+        </div>
+        
+        <div class="card" data-card-id="3">
+            <div class="card-face card-back" data-back-image=""></div>
+            <div class="card-face card-front">
+                <h3>卡牌 3</h3>
+                <p>这是第三张卡牌的正面内容</p>
+            </div>
+            <div class="lock-icon"></div>
+        </div>
+    </div>
+    
+    <!-- 提示框 -->
+    <div class="notification">
+        <div class="notification-content">
+            <p>嘻嘻嘻，未到解封时间</p>
+        </div>
+    </div>
+    
+    <script>
+        // 配置卡牌背面图片路径
+        const cardBackImages = [
+            "img/card1-back.jpg", // 第一张卡牌的背面图片路径
+            "img/card2-back.jpg", // 第二张卡牌的背面图片路径
+            "img/card3-back.jpg"  // 第三张卡牌的背面图片路径
+        ];
+        
+        // 配置卡牌解锁时间（格式：YYYY-MM-DD HH:MM:SS）
+        const cardUnlockTimes = [
+            "2026-03-29 00:00:00", // 第一张卡牌的解锁时间
+            "2026-03-29 00:00:00", // 第二张卡牌的解锁时间
+            "2026-03-29 00:00:00"  // 第三张卡牌的解锁时间
+        ];
+        
+        // 初始化卡牌背面图片
+        document.querySelectorAll('.card-back').forEach((cardBack, index) => {
+            if (cardBackImages[index]) {
+                cardBack.style.backgroundImage = `url(${cardBackImages[index]})`;
+            }
+        });
+        
+        // 检查时间是否达到解锁时间
+        function checkUnlockTime(cardId) {
+            const unlockTime = cardUnlockTimes[cardId - 1];
+            const unlockDate = new Date(unlockTime);
+            const now = new Date();
+            
+            return now >= unlockDate;
+        }
+        
+        // 卡牌点击状态
+        const cardClickState = {
+            1: { count: 0, lastClickTime: 0, timer: null },
+            2: { count: 0, lastClickTime: 0, timer: null },
+            3: { count: 0, lastClickTime: 0, timer: null }
+        };
+        
+        // 显示提示
+        function showNotification(message) {
+            const notification = document.querySelector('.notification');
+            const notificationContent = notification.querySelector('.notification-content p');
+            notificationContent.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 2000);
+        }
+        
+        // 显示GIF表情
+        function showGif(cardId, stage) {
+            // 移除已有的GIF
+            const existingGif = document.querySelector('.gif-container');
+            if (existingGif) {
+                existingGif.remove();
+            }
+            
+            // 创建GIF容器
+            const gifContainer = document.createElement('div');
+            gifContainer.className = 'gif-container';
+            
+            // 设置GIF路径（预留路径，用户可以自己修改）
+            let gifPath = '';
+            if (cardId === 1) {
+                gifPath = stage === 1 ? 'img/gif1-1.gif' : 'img/gif1-2.gif';
+            } else if (cardId === 2) {
+                gifPath = stage === 1 ? 'img/gif2-1.gif' : 'img/gif2-2.gif';
+            } else if (cardId === 3) {
+                gifPath = stage === 1 ? 'img/gif3-1.gif' : 'img/gif3-2.gif';
+            }
+            
+            const gif = document.createElement('img');
+            gif.src = gifPath;
+            gif.alt = '表情';
+            
+            gifContainer.appendChild(gif);
+            document.body.appendChild(gifContainer);
+            
+            // 2秒后移除GIF
+            setTimeout(() => {
+                if (gifContainer) {
+                    gifContainer.remove();
+                }
+            }, 3000);
+        }
+        
+        // 重置点击状态
+        function resetClickState(cardId) {
+            cardClickState[cardId].count = 0;
+            cardClickState[cardId].lastClickTime = 0;
+            if (cardClickState[cardId].timer) {
+                clearTimeout(cardClickState[cardId].timer);
+                cardClickState[cardId].timer = null;
+            }
+        }
+        
+        // 卡牌翻转功能
+        document.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('click', () => {
+                const cardId = parseInt(card.dataset.cardId);
+                const now = Date.now();
+                const timeDiff = now - cardClickState[cardId].lastClickTime;
+                
+                // 检查是否已解锁
+                if (card.classList.contains('unlocked')) {
+                    card.classList.toggle('flipped');
+                    return;
+                }
+                
+                // 检查时间
+                if (checkUnlockTime(cardId)) {
+                    // 解锁卡牌
+                    card.classList.add('unlocked');
+                    resetClickState(cardId);
+                    
+                    // 延迟后翻转
+                    setTimeout(() => {
+                        card.classList.add('flipped');
+                    }, 1000);
+                } else {
+                    // 未到解锁时间，处理点击逻辑
+                    card.classList.add('shake', 'flash-red');
+                    
+                    // 移除动画类
+                    setTimeout(() => {
+                        card.classList.remove('shake', 'flash-red');
+                    }, 500);
+                    
+                    // 处理点击计数和时间
+                    if (timeDiff > 5000) {
+                        // 超过5秒，重置计数
+                        resetClickState(cardId);
+                    }
+                    
+                    cardClickState[cardId].count++;
+                    cardClickState[cardId].lastClickTime = now;
+                    
+                    // 设置5秒后重置计数
+                    if (cardClickState[cardId].timer) {
+                        clearTimeout(cardClickState[cardId].timer);
+                    }
+                    cardClickState[cardId].timer = setTimeout(() => {
+                        resetClickState(cardId);
+                    }, 5000);
+                    
+                    // 根据点击次数显示不同提示
+                    if (cardClickState[cardId].count === 1) {
+                        // 第一次点击
+                        if (cardId === 1) {
+                            showNotification('嘻嘻嘻，未到解封时间，再次点击获取解封时间');
+                        } else if (cardId === 2) {
+                            showNotification('嘻嘻嘻，未到解封时间，再次点击获取解封时间');
+                        } else if (cardId === 3) {
+                            showNotification('嘻嘻嘻，未到解封时间，再次点击获取解封时间');
+                        }
+                    } else if (cardClickState[cardId].count === 2) {
+                        // 第二次点击
+                        if (cardId === 1) {
+                            showNotification('嘻嘻嘻，白蛋白，被毛骗。解封时间我也不知豆');
+                            showGif(1, 1);
+                        } else if (cardId === 2) {
+                            showNotification('这个跟第一个类似哦');
+                            showGif(2, 1);
+                        } else if (cardId === 3) {
+                            showNotification('这个很关键呀');
+                            showGif(3, 1);
+                        }
+                    } else if (cardClickState[cardId].count === 3) {
+                        // 第三次点击
+                        if (cardId === 1) {
+                            showNotification('其实解封时间是~~，再点一次试试呀');
+                        } else if (cardId === 2) {
+                            showNotification('但是又有点区别咧嘻嘻嘻');
+                        } else if (cardId === 3) {
+                            showNotification('这个的准备时间最久');
+                        }
+                    } else if (cardClickState[cardId].count === 4) {
+                        // 第四次点击
+                        if (cardId === 1) {
+                            showNotification('哈哈哈哈哈，白蛋白又被骗，鸡毛鸡，笑哈哈，笑 哈 哈！');
+                            showGif(1, 2);
+                        } else if (cardId === 2) {
+                            showNotification('是什么呀，好难猜呀嘻嘻嘻');
+                            showGif(2, 2);
+                        } else if (cardId === 3) {
+                            showNotification('这个最特别');
+                            showGif(3, 2);
+                        }
+                        // 重置计数
+                        resetClickState(cardId);
+                    }
+                }
+            });
+        });
+        
+        // 添加随机飘动效果
+        function floatCards() {
+            document.querySelectorAll('.card').forEach((card, index) => {
+                const x = (Math.sin(Date.now() * 0.001 + index) * 5);
+                const y = (Math.cos(Date.now() * 0.001 + index) * 5);
+                const transform = `translate(${x}px, ${y}px)`;
+                
+                if (card.classList.contains('flipped')) {
+                    card.style.transform = `${transform} rotateY(180deg)`;
+                } else {
+                    card.style.transform = transform;
+                }
+            });
+            requestAnimationFrame(floatCards);
+        }
+        
+        floatCards();
+    </script>
+</body>
+</html>
