@@ -536,8 +536,8 @@
         // 配置卡牌解锁时间（格式：YYYY-MM-DD HH:MM:SS）
         const cardUnlockTimes = [
             "2026-03-22 12:30:00", // 第一张卡牌的解锁时间
-            "2026-03-29 00:00:00", // 第二张卡牌的解锁时间
-            "2026-03-29 00:00:00"  // 第三张卡牌的解锁时间
+            "2026-03-29 12:00:00", // 第二张卡牌的解锁时间
+            "2026-03-30 8:00:00"  // 第三张卡牌的解锁时间
         ];
         
         // 初始化卡牌背面图片
@@ -652,8 +652,6 @@
         document.querySelectorAll('.card').forEach(card => {
             card.addEventListener('click', () => {
                 const cardId = parseInt(card.dataset.cardId);
-                const now = Date.now();
-                const timeDiff = now - cardClickState[cardId].lastClickTime;
                 
                 // 检查是否已解锁
                 if (card.classList.contains('unlocked')) {
@@ -672,7 +670,7 @@
                         card.classList.add('flipped');
                     }, 1000);
                 } else {
-                    // 未到解锁时间，处理点击逻辑
+                    // 未到解锁时间，显示距离解封时间
                     card.classList.add('shake', 'flash-red');
                     
                     // 移除动画类
@@ -680,62 +678,9 @@
                         card.classList.remove('shake', 'flash-red');
                     }, 500);
                     
-                    // 第一张卡牌特殊处理：显示距离解封时间
-                    if (cardId === 1) {
-                        const timeUntilUnlock = getTimeUntilUnlock(cardId);
-                        showNotification(timeUntilUnlock);
-                    } else {
-                        // 其他卡牌保持原有的多阶段提示逻辑
-                        // 处理点击计数和时间
-                        if (timeDiff > 5000) {
-                            // 超过5秒，重置计数
-                            resetClickState(cardId);
-                        }
-                        
-                        cardClickState[cardId].count++;
-                        cardClickState[cardId].lastClickTime = now;
-                        
-                        // 设置5秒后重置计数
-                        if (cardClickState[cardId].timer) {
-                            clearTimeout(cardClickState[cardId].timer);
-                        }
-                        cardClickState[cardId].timer = setTimeout(() => {
-                            resetClickState(cardId);
-                        }, 5000);
-                        
-                        // 根据点击次数显示不同提示
-                        if (cardClickState[cardId].count === 1) {
-                            // 第一次点击
-                            showNotification('嘻嘻嘻，未到解封时间，再次点击获取解封时间');
-                        } else if (cardClickState[cardId].count === 2) {
-                            // 第二次点击
-                            if (cardId === 2) {
-                                showNotification('这个跟第一个类似哦');
-                                showGif(2, 1);
-                            } else if (cardId === 3) {
-                                showNotification('这个很关键呀');
-                                showGif(3, 1);
-                            }
-                        } else if (cardClickState[cardId].count === 3) {
-                            // 第三次点击
-                            if (cardId === 2) {
-                                showNotification('但是又有点区别咧嘻嘻嘻');
-                            } else if (cardId === 3) {
-                                showNotification('这个的准备时间最久');
-                            }
-                        } else if (cardClickState[cardId].count === 4) {
-                            // 第四次点击
-                            if (cardId === 2) {
-                                showNotification('是什么呀，好难猜呀嘻嘻嘻');
-                                showGif(2, 2);
-                            } else if (cardId === 3) {
-                                showNotification('这个最特别');
-                                showGif(3, 2);
-                            }
-                            // 重置计数
-                            resetClickState(cardId);
-                        }
-                    }
+                    // 显示距离解封时间
+                    const timeUntilUnlock = getTimeUntilUnlock(cardId);
+                    showNotification(timeUntilUnlock);
                 }
             });
         });
