@@ -405,6 +405,69 @@
                 width: 120px;
             }
         }
+        
+        /* 游戏样式 */
+        .game-start {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            transform: none;
+            z-index: 1002;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .game-start:hover {
+            transform: scale(1.1);
+        }
+        
+        .game-start img {
+            width: 150px;
+            height: auto;
+        }
+        
+        .game-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1001;
+        }
+        
+        .game-element {
+            position: absolute;
+            pointer-events: auto;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .game-element img {
+            width: 100px;
+            height: auto;
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 480px) {
+            .game-start img {
+                width: 120px;
+            }
+            
+            .game-element img {
+                width: 80px;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .game-start img {
+                width: 100px;
+            }
+            
+            .game-element img {
+                width: 60px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -412,6 +475,14 @@
     <div class="fixed-gif top-gif">
         <img src="img/shang.gif" alt="上方GIF">
     </div>
+    
+    <!-- 游戏开始按钮 -->
+    <div id="game-start" class="game-start">
+        <img src="img/kaishi.gif" alt="开始游戏">
+    </div>
+    
+    <!-- 游戏元素容器 -->
+    <div id="game-container" class="game-container"></div>
     
     <div class="cards-container">
         <div class="card" data-card-id="1">
@@ -464,7 +535,7 @@
         
         // 配置卡牌解锁时间（格式：YYYY-MM-DD HH:MM:SS）
         const cardUnlockTimes = [
-            "2026-03-22 12:12:00", // 第一张卡牌的解锁时间
+            "2026-03-22 12:30:00", // 第一张卡牌的解锁时间
             "2026-03-29 00:00:00", // 第二张卡牌的解锁时间
             "2026-03-29 00:00:00"  // 第三张卡牌的解锁时间
         ];
@@ -686,6 +757,160 @@
         }
         
         floatCards();
+    </script>
+    
+    <!-- 游戏逻辑 -->
+    <script>
+        // 游戏变量
+        let gameState = false;
+        let gameCount = 0;
+        let gameTimer = null;
+        let currentElement = null;
+        
+        // 获取游戏元素
+        const gameStart = document.getElementById('game-start');
+        const gameContainer = document.getElementById('game-container');
+        
+        // 游戏开始
+        gameStart.addEventListener('click', startGame);
+        
+        function startGame() {
+            // 隐藏开始按钮
+            gameStart.style.display = 'none';
+            
+            // 重置游戏状态
+            gameState = true;
+            gameCount = 0;
+            
+            // 生成第一个地鼠
+            generateMole();
+        }
+        
+        // 生成地鼠
+        function generateMole() {
+            if (!gameState || gameCount >= 7) {
+                return;
+            }
+            
+            // 清除之前的元素
+            if (currentElement) {
+                gameContainer.removeChild(currentElement);
+                currentElement = null;
+            }
+            
+            // 获取卡牌容器位置
+            const cardsContainer = document.querySelector('.cards-container');
+            const cardsRect = cardsContainer.getBoundingClientRect();
+            
+            let x, y;
+            let isOverlap;
+            
+            // 生成不与卡牌区域重叠的位置
+            do {
+                isOverlap = false;
+                x = Math.random() * (window.innerWidth - 100);
+                y = Math.random() * (window.innerHeight - 100);
+                
+                // 检查是否与卡牌区域重叠
+                if (x + 100 > cardsRect.left && x < cardsRect.right &&
+                    y + 100 > cardsRect.top && y < cardsRect.bottom) {
+                    isOverlap = true;
+                }
+            } while (isOverlap);
+            
+            // 创建地鼠元素
+            const moleElement = document.createElement('div');
+            moleElement.className = 'game-element';
+            moleElement.style.left = x + 'px';
+            moleElement.style.top = y + 'px';
+            
+            const moleImg = document.createElement('img');
+            moleImg.src = 'img/dishu.gif';
+            moleImg.alt = '地鼠';
+            
+            moleElement.appendChild(moleImg);
+            gameContainer.appendChild(moleElement);
+            currentElement = moleElement;
+            
+            // 监听点击
+            moleElement.addEventListener('click', hitMole);
+            
+            // 设置超时，如果未点击则游戏失败
+            gameTimer = setTimeout(() => {
+                gameOver();
+            }, 1000); // 1秒超时
+        }
+        
+        // 击中地鼠
+        function hitMole(e) {
+            if (!gameState) return;
+            
+            // 清除超时
+            clearTimeout(gameTimer);
+            
+            // 显示被打中动画
+            const hitElement = e.currentTarget;
+            const hitImg = hitElement.querySelector('img');
+            hitImg.src = 'img/dazhong.gif';
+            
+            // 增加计数
+            gameCount++;
+            
+            // 检查是否完成游戏
+            if (gameCount >= 7) {
+                gameSuccess();
+                return;
+            }
+            
+            // 短暂延迟后生成下一个地鼠
+            setTimeout(() => {
+                generateMole();
+            }, 500);
+        }
+        
+        // 游戏成功
+        function gameSuccess() {
+            gameState = false;
+            
+            // 清除游戏元素
+            if (currentElement) {
+                gameContainer.removeChild(currentElement);
+                currentElement = null;
+            }
+            
+            // 检查卡牌解锁状态
+            const card3 = document.querySelector('[data-card-id="3"]');
+            const isCard3Unlocked = card3.classList.contains('unlocked');
+            
+            let message = '';
+            if (!isCard3Unlocked) {
+                message = '嘻嘻嘻，不错嘛蛋子，但是目前没有可以提供的提示';
+            } else {
+                message = '嘻嘻嘻，成功解锁隐藏提示';
+            }
+            
+            // 显示提示
+            showNotification(message);
+            
+            // 延迟后显示开始按钮
+            setTimeout(() => {
+                gameStart.style.display = 'block';
+            }, 2000);
+        }
+        
+        // 游戏失败
+        function gameOver() {
+            gameState = false;
+            
+            // 清除游戏元素
+            if (currentElement) {
+                gameContainer.removeChild(currentElement);
+                currentElement = null;
+            }
+            
+            // 显示开始按钮
+            gameStart.style.display = 'block';
+        }
     </script>
     
     <!-- 下方常驻GIF -->
